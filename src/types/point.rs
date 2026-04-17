@@ -5,13 +5,13 @@ use std::ops::{Add, AddAssign, Sub, SubAssign};
 pub struct Point(pub Vec3);
 
 impl Point {
-    pub const fn new(x: f32, y: f32, z: f32) -> Self {
+    pub const fn new(x: f64, y: f64, z: f64) -> Self {
         Self(Vec3::new(x, y, z))
     }
 
-    #[inline] pub fn x(&self) -> f32 { self.0.x }
-    #[inline] pub fn y(&self) -> f32 { self.0.y }
-    #[inline] pub fn z(&self) -> f32 { self.0.z }
+    #[inline] pub fn x(&self) -> f64 { self.0.x }
+    #[inline] pub fn y(&self) -> f64 { self.0.y }
+    #[inline] pub fn z(&self) -> f64 { self.0.z }
 }
 
 // Delegate operations to Vec3

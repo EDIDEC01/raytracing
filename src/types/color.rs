@@ -6,13 +6,13 @@ use std::ops::{Add, Mul};
 pub struct Color(pub Vec3);
 
 impl Color {
-    pub const fn new(r: f32, g: f32, b: f32) -> Self {
+    pub const fn new(r: f64, g: f64, b: f64) -> Self {
         Self(Vec3::new(r, g, b))
     }
 
-    #[inline] pub fn r(&self) -> f32 { self.0.x }
-    #[inline] pub fn g(&self) -> f32 { self.0.y }
-    #[inline] pub fn b(&self) -> f32 { self.0.z }
+    #[inline] pub fn r(&self) -> f64 { self.0.x }
+    #[inline] pub fn g(&self) -> f64 { self.0.y }
+    #[inline] pub fn b(&self) -> f64 { self.0.z }
 
     pub fn write_color<W: Write>(&self, writer: &mut W) -> Result<()> {
         writeln!(
@@ -30,12 +30,12 @@ impl Add for Color {
     fn add(self, rhs: Self) -> Self::Output { Color(self.0 + rhs.0) }
 }
 
-impl Mul<f32> for Color {
+impl Mul<f64> for Color {
     type Output = Color;
-    fn mul(self, rhs: f32) -> Self::Output { Color(self.0 * rhs) }
+    fn mul(self, rhs: f64) -> Self::Output { Color(self.0 * rhs) }
 }
 
-impl Mul<Color> for f32 {
+impl Mul<Color> for f64 {
     type Output = Color;
     fn mul(self, rhs: Color) -> Self::Output { Color(self * rhs.0) }
 }

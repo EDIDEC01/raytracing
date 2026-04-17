@@ -6,7 +6,7 @@ use std::io::{self, BufWriter, Write};
 use objects::*;
 use types::*;
 
-fn hit_sphere(center: Point, radius: f32, r: &Ray) -> f32 {
+fn hit_sphere(center: Point, radius: f64, r: &Ray) -> f64 {
     let oc = center - r.orig();
     let a = r.dir().length_squared();
     let h = r.dir().dot(oc);
@@ -37,21 +37,21 @@ fn main() -> io::Result<()> {
     let mut writer = BufWriter::new(file);
 
     let image_width: u32 = 1920;
-    let aspect_ratio: f32 = 16.0 / 9.0;
-    let image_height: u32 = (image_width as f32 / aspect_ratio) as u32;
+    let aspect_ratio: f64 = 16.0 / 9.0;
+    let image_height: u32 = (image_width as f64 / aspect_ratio) as u32;
 
     writeln!(writer, "P3\n{image_width} {image_height}\n255")?;
 
-    let focal_length: f32 = 1.0;
-    let viewport_height: f32 = 2.0;
-    let viewport_width: f32 = viewport_height * (image_width as f32 / image_height as f32);
+    let focal_length: f64 = 1.0;
+    let viewport_height: f64 = 2.0;
+    let viewport_width: f64 = viewport_height * (image_width as f64 / image_height as f64);
     let camera_center: Point = Point::new(0.0, 0.0, 0.0);
 
     let viewport_u = Vec3::new(viewport_width, 0.0, 0.0);
     let viewport_v = Vec3::new(0.0, -viewport_height, 0.0);
 
-    let pixel_delta_u = viewport_u / (image_width as f32);
-    let pixel_delta_v = viewport_v / (image_height as f32);
+    let pixel_delta_u = viewport_u / (image_width as f64);
+    let pixel_delta_v = viewport_v / (image_height as f64);
 
     let viewport_upper_left: Point =
         camera_center - Vec3::new(0.0, 0.0, focal_length) - viewport_u / 2.0 - viewport_v / 2.0;
@@ -60,7 +60,7 @@ fn main() -> io::Result<()> {
     for j in 0..image_height {
         for i in 0..image_width {
             let pixel_center: Point =
-                pixel00_loc + (i as f32 * pixel_delta_u) + (j as f32 * pixel_delta_v);
+                pixel00_loc + (i as f64 * pixel_delta_u) + (j as f64 * pixel_delta_v);
             let ray_direction: Vec3 = pixel_center - camera_center;
             let r = Ray::new(camera_center, ray_direction);
 
@@ -70,7 +70,7 @@ fn main() -> io::Result<()> {
         if (j + 1) % 10 == 0 {
             print!(
                 "\rCompletion percentage: {:.2}% ({}/{})",
-                (j + 1) as f32 / image_height as f32 * 100.0,
+                (j + 1) as f64 / image_height as f64 * 100.0,
                 j + 1,
                 image_height
             );
