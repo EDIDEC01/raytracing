@@ -1,42 +1,39 @@
 use super::vector::Vec3;
+use std::ops::{Add, AddAssign, Sub, SubAssign};
 
-pub type Point = Vec3;
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+pub struct Point(pub Vec3);
 
 impl Point {
-    #[inline]
-    pub fn x(&self) -> f32 {
-        self.e[0]
-    }
-    #[inline]
-    pub fn y(&self) -> f32 {
-        self.e[1]
-    }
-    #[inline]
-    pub fn z(&self) -> f32 {
-        self.e[2]
+    pub const fn new(x: f32, y: f32, z: f32) -> Self {
+        Self(Vec3::new(x, y, z))
     }
 
-    pub fn len_square(&self) -> f32 {
-        f32::powi(self.x(), 2) + f32::powi(self.y(), 2) + f32::powi(self.z(), 2)
-    }
-
-    pub fn len(&self) -> f32 {
-        f32::sqrt(self.len_square())
-    }
+    #[inline] pub fn x(&self) -> f32 { self.0.x }
+    #[inline] pub fn y(&self) -> f32 { self.0.y }
+    #[inline] pub fn z(&self) -> f32 { self.0.z }
 }
 
-pub fn dot(u: Point, v: Point) -> f32 {
-    u.x() * v.x() + u.y() * v.y() + u.z() * v.z()
+// Delegate operations to Vec3
+impl Add<Vec3> for Point {
+    type Output = Point;
+    fn add(self, rhs: Vec3) -> Self::Output { Point(self.0 + rhs) }
 }
 
-pub fn cross(u: Point, v: Point) -> Point {
-    Point::new(
-        u.y() * v.z() - u.z() * v.y(),
-        u.z() * v.x() - u.x() * v.z(),
-        u.x() * v.y() - u.y() * v.x(),
-    )
+impl AddAssign<Vec3> for Point {
+    fn add_assign(&mut self, rhs: Vec3) { self.0 += rhs; }
 }
 
-pub fn unit_vector(v: Point) -> Point {
-    v / v.len()
+impl Sub<Vec3> for Point {
+    type Output = Point;
+    fn sub(self, rhs: Vec3) -> Self::Output { Point(self.0 - rhs) }
+}
+
+impl Sub<Point> for Point {
+    type Output = Vec3;
+    fn sub(self, rhs: Point) -> Self::Output { self.0 - rhs.0 }
+}
+
+impl SubAssign<Vec3> for Point {
+    fn sub_assign(&mut self, rhs: Vec3) { self.0 -= rhs; }
 }
