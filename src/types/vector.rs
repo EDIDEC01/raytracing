@@ -1,14 +1,14 @@
 use std::fmt;
-use std::ops::{Add, AddAssign, Neg, Sub, SubAssign, Mul, MulAssign, Div, DivAssign};
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 #[derive(PartialEq, Debug, Clone, Copy, Default)]
 pub struct Vec3 {
-    pub e: [f32; 3]
-} 
+    pub e: [f32; 3],
+}
 
 impl Vec3 {
     pub const fn new(x: f32, y: f32, z: f32) -> Self {
-        Self { e: [x, y, z]}
+        Self { e: [x, y, z] }
     }
 }
 
@@ -39,7 +39,9 @@ impl Neg for Vec3 {
     type Output = Self;
 
     fn neg(self) -> Self::Output {
-        Self { e: [-self.e[0], -self.e[1], -self.e[2]]}
+        Self {
+            e: [-self.e[0], -self.e[1], -self.e[2]],
+        }
     }
 }
 
@@ -63,7 +65,7 @@ impl MulAssign<f32> for Vec3 {
         self.e[1] *= rhs;
         self.e[2] *= rhs;
     }
-} 
+}
 
 impl Mul<f32> for Vec3 {
     type Output = Self;
@@ -83,6 +85,15 @@ impl Mul for Vec3 {
             self.e[1] * rhs.e[1],
             self.e[2] * rhs.e[2],
         )
+    }
+}
+
+impl Mul<Vec3> for f32 {
+    type Output = Vec3;
+
+    fn mul(self, mut rhs: Vec3) -> Self::Output {
+        rhs *= self;
+        rhs
     }
 }
 
