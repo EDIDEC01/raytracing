@@ -11,6 +11,8 @@ Currently, this project implements the features up to **Chapter 6: Surface Norma
 - **Spheres**: Mathematical representation and ray-sphere intersection logic.
 - **Surface Normals**: Calculation of surface normals for shading based on the direction of the hit.
 - **Hittable Objects & Lists**: An abstraction layer using Traits to handle multiple objects in a scene and find the closest intersection.
+- **Interval-based Clipping**: Improved ray-hit detection using a dedicated `Interval` struct for cleaner code and robust range handling.
+- **Dedicated Camera Class**: Refactored the rendering loop into a standalone `Camera` class, centralizing image configuration and viewport logic.
 - **PPM Image Generation**: Outputting the final render to the PPM image format.
 
 ## Mathematical Foundations

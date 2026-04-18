@@ -27,3 +27,4 @@ impl Interval {
 
 #[allow(dead_code)] const EMPTY: Interval = Interval::new(INFINITY, -INFINITY);
 #[allow(dead_code)] const UNIVERSE: Interval = Interval::new(-INFINITY, INFINITY);
+pub const POSITIVE: Interval = Interval::new(0.001, INFINITY);
