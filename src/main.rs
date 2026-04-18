@@ -1,30 +1,10 @@
-mod objects;
-mod types;
-
 use std::fs::File;
 use std::io::{self, BufWriter, Write};
-use objects::*;
-use types::*;
+use raytracing::*;
 
-fn hit_sphere(center: Point, radius: f64, r: &Ray) -> f64 {
-    let oc = center - r.orig();
-    let a = r.dir().length_squared();
-    let h = r.dir().dot(oc);
-    let c = oc.length_squared() - radius * radius;
-    let discriminant = h * h - a * c;
-
-    if discriminant < 0.0 {
-        -1.0
-    } else {
-        (h - discriminant.sqrt()) / a
-    }
-}
-
-fn ray_color(r: &Ray) -> Color {
-    let t = hit_sphere(Point::new(0.0, 0.0, -1.0), 0.5, r);
-    if t > 0.0 {
-        let normal = (r.at(t) - Point::new(0.0, 0.0, -1.0)).unit_vector();
-        return 0.5 * Color::new(normal.x + 1.0, normal.y + 1.0, normal.z + 1.0);
+fn ray_color(r: &Ray, world: &HittableList) -> Color {
+    if let Some(rec) = world.hit(r, Interval::new(0.0, INFINITY)) {
+        return 0.5 * (Color::new(rec.normal.x + 1.0, rec.normal.y + 1.0, rec.normal.z +1.0));
     }
 
     let unit_dir = r.dir().unit_vector();
@@ -38,9 +18,15 @@ fn main() -> io::Result<()> {
 
     let image_width: u32 = 1920;
     let aspect_ratio: f64 = 16.0 / 9.0;
-    let image_height: u32 = (image_width as f64 / aspect_ratio) as u32;
+    let mut image_height: u32 = (image_width as f64 / aspect_ratio) as u32;
+    image_height = if image_height < 1 { 1 } else { image_height };
 
     writeln!(writer, "P3\n{image_width} {image_height}\n255")?;
+
+    let mut world = HittableList::new();
+
+    world.add(Box::new(Sphere::new(Point::new(0.0, 0.0, -1.0), 0.5)));
+    world.add(Box::new(Sphere::new(Point::new(0.0, -100.5, -1.0), 100.0)));
 
     let focal_length: f64 = 1.0;
     let viewport_height: f64 = 2.0;
@@ -59,12 +45,12 @@ fn main() -> io::Result<()> {
 
     for j in 0..image_height {
         for i in 0..image_width {
-            let pixel_center: Point =
+            let pixel_center =
                 pixel00_loc + (i as f64 * pixel_delta_u) + (j as f64 * pixel_delta_v);
             let ray_direction: Vec3 = pixel_center - camera_center;
             let r = Ray::new(camera_center, ray_direction);
 
-            let pixel_color = ray_color(&r);
+            let pixel_color = ray_color(&r, &world);
             pixel_color.write_color(&mut writer)?;
         }
         if (j + 1) % 10 == 0 {
