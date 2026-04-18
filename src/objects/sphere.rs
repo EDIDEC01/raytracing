@@ -1,22 +1,19 @@
-use super::hittable::{HitRecord, Hittable};
+use super::hittables::{HitRecord, Hittable};
 use crate::types::point::Point;
 use crate::types::ray::Ray;
 
 pub struct Sphere {
     center: Point,
-    radius: f64
+    radius: f64,
 }
 
 impl Sphere {
     pub fn new(center: Point, radius: f64) -> Self {
         Self {
             center,
-            radius: f64::max(0.0, radius)
+            radius: f64::max(0.0, radius),
         }
     }
-
-    #[inline] fn center(&self) -> Point { self.center }
-    #[inline] fn radius(&self) -> f64 { self.radius }
 }
 
 impl Hittable for Sphere {
@@ -31,7 +28,7 @@ impl Hittable for Sphere {
             return None;
         }
 
-        let sqrtd = f64::sqrt(discriminant);
+        let sqrtd = discriminant.sqrt();
 
         // Find the nearest root that lies in the acceptable range.
         let mut root = (h - sqrtd) / a;
@@ -42,16 +39,12 @@ impl Hittable for Sphere {
             }
         }
 
-        let t = root;
-        let p = r.at(t);
-        let normal = (p - self.center) / self.radius;
+        let mut rec = HitRecord::default();
+        rec.t = root;
+        rec.p = r.at(rec.t);
+        let outward_normal = (rec.p - self.center) / self.radius;
+        rec.set_face_normal(r, &outward_normal);
 
-        Some(
-            HitRecord {
-                p,
-                normal,
-                t
-            }
-        )
+        Some(rec)
     }
 }
