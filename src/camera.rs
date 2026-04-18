@@ -1,5 +1,4 @@
-use std::fs::File;
-use std::io::{self, BufWriter, Write};
+use std::io::{self, Write};
 use std::time::Instant;
 
 use crate::objects::hittables::{HittableList, Hittable};
@@ -51,60 +50,86 @@ impl Camera {
         }
     }
 
-    fn ray_color(r: &Ray, world: &HittableList) -> Color {
-        if let Some(rec) = world.hit(r, POSITIVE) {
-            return 0.5 * Color::new(rec.normal.x + 1.0, rec.normal.y + 1.0, rec.normal.z + 1.0);
+    pub fn render(&self, world: &HittableList, writer: &mut impl Write) -> io::Result<()> {
+        self.write_ppm_header(writer)?;
+
+        for j in 0..self.image_height {
+            for i in 0..self.image_width {
+                let pixel_color = self.render_pixel(i, j, world);
+                pixel_color.write_color(writer)?;
+            }
         }
 
-        let unit_dir = r.dir().unit_vector();
-        let a = 0.5 * (unit_dir.y + 1.0);
-        (1.0 - a) * Color::new(1.0, 1.0, 1.0) + a * Color::new(0.5, 0.7, 1.0)
+        writer.flush()
     }
 
-    pub fn render(&self, world: &HittableList) -> Result<(), Box<dyn std::error::Error>> {
-        let file = File::create("example.ppm")?;
-        let mut writer = BufWriter::new(file);
-
-        writeln!(writer, "P3\n{} {}\n255", self.image_width, self.image_height)?;
+    pub fn render_with_progress(&self, world: &HittableList, writer: &mut impl Write) -> Result<(), Box<dyn std::error::Error>> {
+        self.write_ppm_header(writer)?;
 
         println!("Starting render: {}x{} pixels", self.image_width, self.image_height);
         let start_time = Instant::now();
 
         for j in 0..self.image_height {
             for i in 0..self.image_width {
-                let pixel_center =
-                    self.pixel00_loc + (i as f64 * self.pixel_delta_u) + (j as f64 * self.pixel_delta_v);
-                let ray_direction: Vec3 = pixel_center - self.center;
-                let r = Ray::new(self.center, ray_direction);
-
-                let pixel_color = Self::ray_color(&r, &world);
-                pixel_color.write_color(&mut writer)?;
+                let pixel_color = self.render_pixel(i, j, world);
+                pixel_color.write_color(writer)?;
             }
             
-            // Progress reporting
-            if (j + 1) % 10 == 0 || j == self.image_height - 1 {
-                let elapsed = start_time.elapsed().as_secs_f64();
-                let progress = (j + 1) as f64 / self.image_height as f64;
-                let pixels_processed = (j + 1) * self.image_width;
-                let pixels_per_sec = if elapsed > 0.0 { pixels_processed as f64 / elapsed } else { 0.0 };
-                
-                print!(
-                    "\rProgress: {:.2}% | Elapsed: {:.1}s | Speed: {:.0} px/s",
-                    progress * 100.0,
-                    elapsed,
-                    pixels_per_sec
-                );
-                io::stdout().flush()?;
-            }
+            self.report_progress(j, &start_time);
         }
         
         writer.flush()?;
+        self.print_final_summary(&start_time);
+
+        Ok(())
+    }
+
+    fn write_ppm_header(&self, writer: &mut impl Write) -> io::Result<()> {
+        writeln!(writer, "P3\n{} {}\n255", self.image_width, self.image_height)
+    }
+    
+    fn render_pixel(&self, i: u32, j: u32, world: &HittableList) -> Color {
+        let pixel_center =
+        self.pixel00_loc + (i as f64 * self.pixel_delta_u) + (j as f64 * self.pixel_delta_v);
+        let ray_direction: Vec3 = pixel_center - self.center;
+        let r = Ray::new(self.center, ray_direction);
+        
+        Self::ray_color(&r, &world)
+    }
+    
+    fn ray_color(r: &Ray, world: &HittableList) -> Color {
+        if let Some(rec) = world.hit(r, POSITIVE) {
+            return 0.5 * Color::new(rec.normal.x + 1.0, rec.normal.y + 1.0, rec.normal.z + 1.0);
+        }
+        
+        let unit_dir = r.dir().unit_vector();
+        let a = 0.5 * (unit_dir.y + 1.0);
+        (1.0 - a) * Color::new(1.0, 1.0, 1.0) + a * Color::new(0.5, 0.7, 1.0)
+    }
+
+    fn report_progress(&self, j: u32, start_time: &Instant) {
+        if (j + 1) % 10 != 0 && j != self.image_height - 1 {
+            return;
+        }
+        let elapsed = start_time.elapsed().as_secs_f64();
+        let progress = (j + 1) as f64 / self.image_height as f64;
+        let pixels_processed = (j + 1) * self.image_width;
+        let pixels_per_sec = if elapsed > 0.0 { pixels_processed as f64 / elapsed } else { 0.0 };
+        
+        print!(
+            "\rProgress: {:.2}% | Elapsed: {:.1}s | Speed: {:.0} px/s",
+            progress * 100.0,
+            elapsed,
+            pixels_per_sec
+        );
+        let _ = io::stdout().flush();
+    }
+
+    fn print_final_summary(&self, start_time: &Instant) {
         let duration = start_time.elapsed();
         println!("\n\nRender Complete!");
         println!("Total Time: {:.3} seconds", duration.as_secs_f64());
         println!("Total Pixels: {}", self.image_width * self.image_height);
         println!("Average Speed: {:.0} pixels per second", (self.image_width * self.image_height) as f64 / duration.as_secs_f64());
-
-        Ok(())
     }
 }

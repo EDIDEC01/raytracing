@@ -1,3 +1,5 @@
+use std::{fs::File, io::BufWriter};
+
 use raytracing::*;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -11,7 +13,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     world.add(Box::new(Sphere::new(Point::new(0.0, -100.5, -1.0), 100.0)));
 
     let camera = Camera::new(aspect_ratio, image_width);
-    camera.render(&world)?;
+    let file = File::create("example.ppm")?;
+    let mut writer = BufWriter::new(file);
+    camera.render_with_progress(&world, &mut writer)?;
 
     Ok(())
 }
