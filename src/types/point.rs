@@ -9,9 +9,9 @@ impl Point {
         Self(Vec3::new(x, y, z))
     }
 
-    #[inline] pub fn x(&self) -> f64 { self.0.x }
-    #[inline] pub fn y(&self) -> f64 { self.0.y }
-    #[inline] pub fn z(&self) -> f64 { self.0.z }
+    #[allow(dead_code)] #[inline] pub fn x(&self) -> f64 { self.0.x }
+    #[allow(dead_code)] #[inline] pub fn y(&self) -> f64 { self.0.y }
+    #[allow(dead_code)] #[inline] pub fn z(&self) -> f64 { self.0.z }
 }
 
 // Delegate operations to Vec3
