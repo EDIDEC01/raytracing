@@ -1,7 +1,8 @@
 use std::io::{self, Write};
 use std::time::Instant;
 
-use crate::objects::hittables::{HittableList, Hittable};
+use crate::objects::hittables::{Hittable, HittableList};
+use crate::random_f64;
 use crate::types::color::Color;
 use crate::types::interval::POSITIVE;
 use crate::types::point::Point;
@@ -12,20 +13,23 @@ use crate::types::vector::Vec3;
 pub struct Camera {
     pub aspect_ratio: f64,
     pub image_width: u32,
-    verbose: bool,
+    pub sample_per_pixel: u32,
     image_height: u32,
+    pixel_sample_scale: f64,
     center: Point,
     pixel00_loc: Point,
     pixel_delta_u: Vec3,
     pixel_delta_v: Vec3,
     pixels: Vec<Color>,
+    verbose: bool,
 }
 
 impl Camera {
-    pub fn new(aspect_ratio: f64, image_width: u32) -> Self {
+    pub fn new(aspect_ratio: f64, image_width: u32, sample_per_pixel: u32) -> Self {
         let verbose = true;
 
         let image_height = (image_width as f64 / aspect_ratio) as u32;
+        let pixel_sample_scale = 1.0 / sample_per_pixel as f64;
         let center = Point::default();
 
         let focal_length: f64 = 1.0;
@@ -48,13 +52,15 @@ impl Camera {
         Self {
             aspect_ratio,
             image_width,
-            verbose,
+            sample_per_pixel,
             image_height,
+            pixel_sample_scale,
             center,
             pixel00_loc,
             pixel_delta_u,
             pixel_delta_v,
             pixels,
+            verbose,
         }
     }
 
@@ -64,9 +70,12 @@ impl Camera {
 
     pub fn render(&mut self, world: &HittableList) {
         self.pixels.clear();
-        
+
         if self.verbose {
-            println!("Starting render: {}x{} pixels", self.image_width, self.image_height);
+            println!(
+                "Starting render: {}x{} pixels",
+                self.image_width, self.image_height
+            );
         }
         let start_time = Instant::now();
 
@@ -75,12 +84,12 @@ impl Camera {
                 let pixel_color = self.render_pixel(i, j, world);
                 self.pixels.push(pixel_color);
             }
-            
+
             if self.verbose {
                 self.report_progress(j, &start_time);
             }
         }
-        
+
         if self.verbose {
             self.print_final_summary(&start_time);
         }
@@ -104,23 +113,42 @@ impl Camera {
     }
 
     fn write_ppm_header(&self, writer: &mut impl Write) -> io::Result<()> {
-        writeln!(writer, "P3\n{} {}\n255", self.image_width, self.image_height)
+        writeln!(
+            writer,
+            "P3\n{} {}\n255",
+            self.image_width, self.image_height
+        )
     }
-    
+
     fn render_pixel(&self, i: u32, j: u32, world: &HittableList) -> Color {
-        let pixel_center =
-        self.pixel00_loc + (i as f64 * self.pixel_delta_u) + (j as f64 * self.pixel_delta_v);
-        let ray_direction: Vec3 = pixel_center - self.center;
-        let r = Ray::new(self.center, ray_direction);
-        
-        Self::ray_color(&r, &world)
+        let mut pixel_color = Color::default();
+
+        for _ in 0..self.sample_per_pixel {
+            let r = self.get_ray(i, j);
+            pixel_color += Self::ray_color(&r, world);
+        }
+
+        pixel_color * self.pixel_sample_scale
     }
-    
+
+    fn get_ray(&self, i: u32, j: u32) -> Ray {
+        let offset = Self::sample_square();
+        let pixel_sample = self.pixel00_loc
+            + ((i as f64 + offset.x) * self.pixel_delta_u)
+            + ((j as f64 + offset.y) * self.pixel_delta_v);
+        let ray_direction: Vec3 = pixel_sample - self.center;
+        Ray::new(self.center, ray_direction)
+    }
+
+    fn sample_square() -> Vec3 {
+        Vec3::new(random_f64() - 0.5, random_f64() - 0.5, 0.0)
+    }
+
     fn ray_color(r: &Ray, world: &HittableList) -> Color {
         if let Some(rec) = world.hit(r, POSITIVE) {
             return 0.5 * Color::new(rec.normal.x + 1.0, rec.normal.y + 1.0, rec.normal.z + 1.0);
         }
-        
+
         let unit_dir = r.dir().unit_vector();
         let a = 0.5 * (unit_dir.y + 1.0);
         (1.0 - a) * Color::new(1.0, 1.0, 1.0) + a * Color::new(0.5, 0.7, 1.0)
@@ -133,22 +161,35 @@ impl Camera {
         let elapsed = start_time.elapsed().as_secs_f64();
         let progress = (j + 1) as f64 / self.image_height as f64;
         let pixels_processed = (j + 1) * self.image_width;
-        let pixels_per_sec = if elapsed > 0.0 { pixels_processed as f64 / elapsed } else { 0.0 };
-        
+        let rays_processed = pixels_processed * self.sample_per_pixel;
+        let rays_per_sec = if elapsed > 0.0 {
+            rays_processed as f64 / elapsed
+        } else {
+            0.0
+        };
+
         print!(
-            "\rProgress: {:.2}% | Elapsed: {:.1}s | Speed: {:.0} px/s",
+            "\rProgress: {:.2}% | Elapsed: {:.1}s | Speed: {:.0} rays/s | SPP: {}",
             progress * 100.0,
             elapsed,
-            pixels_per_sec
+            rays_per_sec,
+            self.sample_per_pixel
         );
         let _ = io::stdout().flush();
     }
 
     fn print_final_summary(&self, start_time: &Instant) {
         let duration = start_time.elapsed();
+        let total_pixels = self.image_width * self.image_height;
+        let total_rays = total_pixels * self.sample_per_pixel;
         println!("\n\nRender Complete!");
         println!("Total Time: {:.3} seconds", duration.as_secs_f64());
-        println!("Total Pixels: {}", self.image_width * self.image_height);
-        println!("Average Speed: {:.0} pixels per second", (self.image_width * self.image_height) as f64 / duration.as_secs_f64());
+        println!("Total Pixels: {}", total_pixels);
+        println!("Samples Per Pixel: {}", self.sample_per_pixel);
+        println!("Total Rays: {}", total_rays);
+        println!(
+            "Average Speed: {:.0} rays per second",
+            total_rays as f64 / duration.as_secs_f64()
+        );
     }
 }

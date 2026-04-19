@@ -3,7 +3,7 @@
 A high-performance Ray Tracer implemented in Rust, following the "Ray Tracing in One Weekend" book series.
 
 ## Progress
-Currently, this project implements the features up to **Chapter 6: Surface Normals and Multiple Objects**.
+Currently, this project implements the features up to **Chapter 8: Antialiasing**.
 
 ### Implemented Features
 - **Vec3 Utility Class**: A robust 3D vector implementation with operator overloading for seamless mathematical operations.
@@ -13,6 +13,8 @@ Currently, this project implements the features up to **Chapter 6: Surface Norma
 - **Hittable Objects & Lists**: An abstraction layer using Traits to handle multiple objects in a scene and find the closest intersection.
 - **Interval-based Clipping**: Improved ray-hit detection using a dedicated `Interval` struct for cleaner code and robust range handling.
 - **Dedicated Camera Class**: Refactored the rendering loop into a standalone `Camera` class, centralizing image configuration and viewport logic.
+- **Antialiasing**: Implemented multi-sampling per pixel with randomized offsets for smoother edges.
+- **Random Utility Functions**: Added reliable random number generation for stochastic sampling.
 - **PPM Image Generation**: Outputting the final render to the PPM image format.
 
 ## Mathematical Foundations
@@ -36,6 +38,11 @@ Where $\mathbf{Q}$ is the ray origin and $\mathbf{d}$ is the ray direction. The 
 The normal vector $\mathbf{n}$ at a hit point $\mathbf{P}$ on a sphere centered at $\mathbf{C}$ is calculated as:
 $$\mathbf{n} = \frac{\mathbf{P} - \mathbf{C}}{r}$$
 This resulting vector is then normalized to unit length. To ensure the normal always points against the incident ray, the implementation determines whether the ray hit the "front" or "back" face of the surface.
+
+### 4. Antialiasing (Multi-sampling)
+To reduce jagged edges, each pixel is sampled multiple times with a small random offset within the pixel's boundaries. The final color is the average of these samples:
+$$\mathbf{C}_{pixel} = \frac{1}{N} \sum_{i=1}^{N} \mathbf{C}_{sample, i}$$
+Where $N$ is the number of samples per pixel.
 
 ## Technical Details
 - **Language**: Rust
