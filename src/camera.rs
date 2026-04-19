@@ -12,15 +12,19 @@ use crate::types::vector::Vec3;
 pub struct Camera {
     pub aspect_ratio: f64,
     pub image_width: u32,
+    verbose: bool,
     image_height: u32,
     center: Point,
     pixel00_loc: Point,
     pixel_delta_u: Vec3,
     pixel_delta_v: Vec3,
+    pixels: Vec<Color>,
 }
 
 impl Camera {
     pub fn new(aspect_ratio: f64, image_width: u32) -> Self {
+        let verbose = true;
+
         let image_height = (image_width as f64 / aspect_ratio) as u32;
         let center = Point::default();
 
@@ -39,49 +43,64 @@ impl Camera {
             camera_center - Vec3::new(0.0, 0.0, focal_length) - viewport_u / 2.0 - viewport_v / 2.0;
         let pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
 
+        let pixels = Vec::with_capacity((image_width * image_height) as usize);
+
         Self {
             aspect_ratio,
             image_width,
+            verbose,
             image_height,
             center,
             pixel00_loc,
             pixel_delta_u,
-            pixel_delta_v
+            pixel_delta_v,
+            pixels,
         }
     }
 
-    pub fn render(&self, world: &HittableList, writer: &mut impl Write) -> io::Result<()> {
-        self.write_ppm_header(writer)?;
-
-        for j in 0..self.image_height {
-            for i in 0..self.image_width {
-                let pixel_color = self.render_pixel(i, j, world);
-                pixel_color.write_color(writer)?;
-            }
-        }
-
-        writer.flush()
+    pub fn set_verbose(&mut self, verbose: bool) {
+        self.verbose = verbose;
     }
 
-    pub fn render_with_progress(&self, world: &HittableList, writer: &mut impl Write) -> Result<(), Box<dyn std::error::Error>> {
-        self.write_ppm_header(writer)?;
-
-        println!("Starting render: {}x{} pixels", self.image_width, self.image_height);
+    pub fn render(&mut self, world: &HittableList) {
+        self.pixels.clear();
+        
+        if self.verbose {
+            println!("Starting render: {}x{} pixels", self.image_width, self.image_height);
+        }
         let start_time = Instant::now();
 
         for j in 0..self.image_height {
             for i in 0..self.image_width {
                 let pixel_color = self.render_pixel(i, j, world);
-                pixel_color.write_color(writer)?;
+                self.pixels.push(pixel_color);
             }
             
-            self.report_progress(j, &start_time);
+            if self.verbose {
+                self.report_progress(j, &start_time);
+            }
         }
         
-        writer.flush()?;
-        self.print_final_summary(&start_time);
+        if self.verbose {
+            self.print_final_summary(&start_time);
+        }
+    }
 
-        Ok(())
+    pub fn save(&self, writer: &mut impl Write) -> io::Result<()> {
+        if self.pixels.is_empty() {
+            return Err(io::Error::new(
+                io::ErrorKind::Other,
+                "No pixels to save. Call render() before calling save().",
+            ));
+        }
+
+        self.write_ppm_header(writer)?;
+
+        for pixel in &self.pixels {
+            pixel.write_color(writer)?;
+        }
+
+        writer.flush()
     }
 
     fn write_ppm_header(&self, writer: &mut impl Write) -> io::Result<()> {
