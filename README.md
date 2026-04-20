@@ -25,7 +25,11 @@ This project implements several key mathematical concepts from the book:
 
 ### 1. Ray Representation
 A ray is modeled as a function of a parameter $t$:
-$$\mathbf{P}(t) = \mathbf{A} + t\mathbf{B}$$
+
+$$
+\mathbf{P}(t) = \mathbf{A} + t\mathbf{B}
+$$
+
 Where:
 - $\mathbf{A}$ is the ray origin.
 - $\mathbf{B}$ is the ray direction.
@@ -33,27 +37,47 @@ Where:
 
 ### 2. Ray-Sphere Intersection
 To find if a ray hits a sphere of radius $r$ centered at $\mathbf{C}$, we solve for $t$ in the quadratic equation:
-$$t^2 \mathbf{d} \cdot \mathbf{d} - 2t \mathbf{d} \cdot (\mathbf{C} - \mathbf{Q}) + (\mathbf{C} - \mathbf{Q}) \cdot (\mathbf{C} - \mathbf{Q}) - r^2 = 0$$
+
+$$
+t^2 \mathbf{d} \cdot \mathbf{d} - 2t \mathbf{d} \cdot (\mathbf{C} - \mathbf{Q}) + (\mathbf{C} - \mathbf{Q}) \cdot (\mathbf{C} - \mathbf{Q}) - r^2 = 0
+$$
+
 Where $\mathbf{Q}$ is the ray origin and $\mathbf{d}$ is the ray direction.
 
 ### 3. Surface Normals
 The normal vector $\mathbf{n}$ at a hit point $\mathbf{P}$ on a sphere centered at $\mathbf{C}$ is calculated as:
-$$\mathbf{n} = \frac{\mathbf{P} - \mathbf{C}}{r}$$
+
+$$
+\mathbf{n} = \frac{\mathbf{P} - \mathbf{C}}{r}
+$$
+
 This resulting vector is then normalized to unit length. To ensure the normal always points against the incident ray, the implementation determines whether the ray hit the "front" or "back" face of the surface.
 
 ### 4. Antialiasing (Multi-sampling)
 To reduce jagged edges, each pixel is sampled multiple times with a small random offset within the pixel's boundaries. The final color is the average of these samples:
-$$\mathbf{C}_{pixel} = \frac{1}{N} \sum_{i=1}^{N} \mathbf{C}_{sample, i}$$
+
+$$
+\mathbf{C}_{pixel} = \frac{1}{N} \sum_{i=1}^{N} \mathbf{C}_{sample, i}
+$$
+
 Where $N$ is the number of samples per pixel.
 
 ### 5. Diffuse Reflection
 Matte surfaces are modeled by scattering rays in random directions. The current implementation uses the **Lambertian distribution** by picking random points on a unit sphere tangent to the hit point:
-$$\mathbf{S} = \mathbf{P} + \mathbf{n} + \text{random\_unit\_vector}()$$
+
+$$
+\mathbf{S} = \mathbf{P} + \mathbf{n} + \text{random\_unit\_vector}()
+$$
+
 Where $\mathbf{S}$ is the new target point for the scattered ray, $\mathbf{P}$ is the hit point, and $\mathbf{n}$ is the surface normal.
 
 ### 6. Gamma Correction
 To transform linear light into a representation more suitable for displays, we use a gamma of 2.0 (approximated by a square root):
-$$\text{color}_{gamma} = \sqrt{\text{color}_{linear}}$$
+
+$$
+\text{color}_{gamma} = \sqrt{\text{color}_{linear}}
+$$
+
 This correction is applied to each color component (R, G, B) before conversion to the 8-bit integer format.
 
 ## Technical Details
