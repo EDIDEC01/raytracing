@@ -3,7 +3,7 @@
 A high-performance Ray Tracer implemented in Rust, following the "Ray Tracing in One Weekend" book series.
 
 ## Progress
-Currently, this project implements the features up to **Chapter 9: Diffuse Materials**.
+Currently, this project implements the features up to **Chapter 10: Metal**.
 
 ### Implemented Features
 - **Vec3 Utility Class**: A robust 3D vector implementation with operator overloading and stochastic sampling methods.
@@ -11,13 +11,14 @@ Currently, this project implements the features up to **Chapter 9: Diffuse Mater
 - **Spheres**: Mathematical representation and ray-sphere intersection logic.
 - **Surface Normals**: Calculation of surface normals for shading and determining front/back faces.
 - **Hittable Objects & Lists**: An abstraction layer using Traits to handle multiple objects in a scene.
+- **Material System**: An abstract `Material` trait allowing for different surface behaviors.
+- **Lambertian (Diffuse)**: Realistic matte surfaces using a stochastic distribution.
+- **Metal (Specular)**: Reflective surfaces with support for adjustable "fuzziness" (roughness).
 - **Interval-based Clipping**: Improved ray-hit detection using a dedicated `Interval` struct.
-- **Dedicated Camera Class**: Centralized image configuration, viewport logic, and recursive rendering.
+- **Dedicated Camera Class**: Centralized image configuration, viewport logic, and iterative rendering.
 - **Antialiasing**: Multi-sampling per pixel with randomized offsets.
-- **Diffuse Materials**: Implementation of matte surfaces using stochastic ray scattering (Lambertian-like).
 - **Gamma Correction**: Conversion from linear to gamma space for more accurate color representation.
-- **Recursive Ray Tracing**: Limited recursion to handle multiple ray bounces for indirect lighting.
-- **PPM Image Generation**: Outputting the final render to the PPM image format.
+- **Binary Image Output**: Switched to binary PPM (P6) format for more efficient image generation and storage.
 
 ## Mathematical Foundations
 
@@ -51,34 +52,35 @@ $$
 \mathbf{n} = \frac{\mathbf{P} - \mathbf{C}}{r}
 $$
 
-This resulting vector is then normalized to unit length. To ensure the normal always points against the incident ray, the implementation determines whether the ray hit the "front" or "back" face of the surface.
+### 4. Specular Reflection
+For polished surfaces like metal, the reflected ray direction $\mathbf{r}$ is calculated based on the incident vector $\mathbf{v}$ and the surface normal $\mathbf{n}$:
 
-### 4. Antialiasing (Multi-sampling)
+$$
+\mathbf{r} = \mathbf{v} - 2(\mathbf{v} \cdot \mathbf{n})\mathbf{n}
+$$
+
+Fuzzy reflection is achieved by adding a small random vector within a unit sphere to the perfect reflection vector, scaled by a "fuzz" factor.
+
+### 5. Antialiasing (Multi-sampling)
 To reduce jagged edges, each pixel is sampled multiple times with a small random offset within the pixel's boundaries. The final color is the average of these samples:
 
 $$
 \mathbf{C}_{pixel} = \frac{1}{N} \sum_{i=1}^{N} \mathbf{C}_{sample, i}
 $$
 
-Where $N$ is the number of samples per pixel.
-
-### 5. Diffuse Reflection
+### 6. Diffuse Reflection
 Matte surfaces are modeled by scattering rays in random directions. The current implementation uses the **Lambertian distribution** by picking random points on a unit sphere tangent to the hit point:
 
 $$
 \mathbf{S} = \mathbf{P} + \mathbf{n} + \text{random\_unit\_vector()}
 $$
 
-Where $\mathbf{S}$ is the new target point for the scattered ray, $\mathbf{P}$ is the hit point, and $\mathbf{n}$ is the surface normal.
-
-### 6. Gamma Correction
+### 7. Gamma Correction
 To transform linear light into a representation more suitable for displays, we use a gamma of 2.0 (approximated by a square root):
 
 $$
 \text{color}_{gamma} = \sqrt{\text{color}_{linear}}
 $$
-
-This correction is applied to each color component (R, G, B) before conversion to the 8-bit integer format.
 
 ## Technical Details
 - **Language**: Rust

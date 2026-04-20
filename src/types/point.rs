@@ -1,4 +1,4 @@
-use crate::vector::Vec3;
+use crate::Vec3;
 use std::ops::{Add, AddAssign, Sub, SubAssign};
 
 #[derive(PartialEq, Debug, Clone, Copy, Default)]

@@ -1,6 +1,4 @@
-use crate::Interval;
-
-use crate::vector::Vec3;
+use crate::{Vec3, Interval};
 use std::io::{Result, Write};
 use std::ops::{Add, Mul, AddAssign};
 
@@ -26,17 +24,17 @@ impl Color {
     }
 
     pub fn write_color<W: Write>(&self, writer: &mut W) -> Result<()> {
-        let r = Color::linear_to_gamma(self.r());
-        let g = Color::linear_to_gamma(self.g());
-        let b = Color::linear_to_gamma(self.b());
+        let mut r = Color::linear_to_gamma(self.r());
+        let mut g = Color::linear_to_gamma(self.g());
+        let mut b = Color::linear_to_gamma(self.b());
 
         let intensity = Interval::new(0.0, 0.999);
 
-        let r_byte = (256.0 * intensity.clamp(r)) as i32;
-        let g_byte = (256.0 * intensity.clamp(g)) as i32;
-        let b_byte = (256.0 * intensity.clamp(b)) as i32;
+        r = 256.0 * intensity.clamp(r);
+        g = 256.0 * intensity.clamp(g);
+        b = 256.0 * intensity.clamp(b);
 
-        writeln!(writer, "{} {} {}", r_byte, g_byte, b_byte)
+        writer.write_all(&[r as u8, g as u8, b as u8])
     }
 
     fn linear_to_gamma(linear_component: f64) -> f64{
@@ -58,6 +56,13 @@ impl Add for Color {
 impl AddAssign for Color {
     fn add_assign(&mut self, rhs: Self) {
         self.0 += rhs.0;
+    }
+}
+
+impl Mul for Color {
+    type Output = Color;
+    fn mul(self, rhs: Self) -> Self::Output {
+        Color(self.0 * rhs.0)
     }
 }
 

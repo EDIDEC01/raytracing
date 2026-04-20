@@ -1,13 +1,7 @@
 use std::io::{self, Write};
 use std::time::Instant;
 
-use crate::objects::hittables::{Hittable, HittableList};
-use crate::random_f64;
-use crate::types::color::Color;
-use crate::types::interval::POSITIVE;
-use crate::types::point::Point;
-use crate::types::ray::Ray;
-use crate::types::vector::Vec3;
+use crate::{Hittable, HittableList, Color, Point, Ray, Vec3, POSITIVE, random_f64};
 
 #[derive(Default)]
 pub struct Camera {
@@ -97,31 +91,6 @@ impl Camera {
         }
     }
 
-    pub fn save(&self, writer: &mut impl Write) -> io::Result<()> {
-        if self.pixels.is_empty() {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                "No pixels to save. Call render() before calling save().",
-            ));
-        }
-
-        self.write_ppm_header(writer)?;
-
-        for pixel in &self.pixels {
-            pixel.write_color(writer)?;
-        }
-
-        writer.flush()
-    }
-
-    fn write_ppm_header(&self, writer: &mut impl Write) -> io::Result<()> {
-        writeln!(
-            writer,
-            "P3\n{} {}\n255",
-            self.image_width, self.image_height
-        )
-    }
-
     fn render_pixel(&self, i: u32, j: u32, world: &HittableList) -> Color {
         let mut pixel_color = Color::default();
 
@@ -147,18 +116,21 @@ impl Camera {
     }
 
     fn ray_color(r: &mut Ray, world: &HittableList, max_depth: u32) -> Color {
-        let mut attenuation = 1.0;
+        let mut result = Color::new(1.0, 1.0, 1.0);
 
         for _ in 0..max_depth {
             if let Some(rec) = world.hit(r, POSITIVE) {
-                r.set_orig(rec.p); 
-                r.set_dir(rec.normal + Vec3::random_unit_vector()); 
-                attenuation *= 0.7;
+                if let Some((scattered, attenuation)) = rec.material.scatter(r, &rec) {
+                    result = result * attenuation;
+                    *r = scattered;
+                } else {
+                    return Color::default();
+                }
             } else {
                 let unit_dir = r.dir().unit_vector();
                 let a = 0.5 * (unit_dir.y + 1.0);
                 let sky = (1.0 - a) * Color::new(1.0, 1.0, 1.0) + a * Color::new(0.5, 0.7, 1.0);
-                return sky * attenuation; 
+                return sky * result; 
             }
         }
             
@@ -198,5 +170,30 @@ impl Camera {
             "Average Speed: {:.0} rays per second",
             total_rays as f64 / duration.as_secs_f64()
         );
+    }
+
+    pub fn save(&self, writer: &mut impl Write) -> io::Result<()> {
+        if self.pixels.is_empty() {
+            return Err(io::Error::new(
+                io::ErrorKind::Other,
+                "No pixels to save. Call render() before calling save().",
+            ));
+        }
+
+        self.write_ppm_header(writer)?;
+
+        for pixel in &self.pixels {
+            pixel.write_color(writer)?;
+        }
+
+        writer.flush()
+    }
+
+    fn write_ppm_header(&self, writer: &mut impl Write) -> io::Result<()> {
+        writeln!(
+            writer,
+            "P6\n{} {}\n255",
+            self.image_width, self.image_height
+        )
     }
 }

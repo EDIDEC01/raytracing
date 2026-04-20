@@ -30,8 +30,8 @@ impl Vec3 {
         self.x * self.x + self.y * self.y + self.z * self.z
     }
 
-    pub fn dot(self, other: Self) -> f64 {
-        self.x * other.x + self.y * other.y + self.z * other.z
+    pub fn dot(self, v: Self) -> f64 {
+        self.x * v.x + self.y * v.y + self.z * v.z
     }
 
     pub fn cross(self, other: Self) -> Self {
@@ -56,14 +56,23 @@ impl Vec3 {
         }
     }
 
-    pub fn random_on_hemisphere(normal: &Vec3) -> Vec3 {
+    pub fn random_on_hemisphere(normal: Self) -> Self {
         let on_unit_sphere = Self::random_unit_vector();
 
-        if on_unit_sphere.dot(*normal) > 0.0 {
+        if on_unit_sphere.dot(normal) > 0.0 {
             on_unit_sphere
         } else {
             -on_unit_sphere
         }
+    }
+
+    pub fn reflect(self, v: Self) -> Self {
+        self - 2.0 * self.dot(v) * (v)
+    }
+
+    pub fn near_zero(&self) -> bool {
+        let s = 1e-8;
+        f64::abs(self.x) < s && f64::abs(self.y) < s && f64::abs(self.z) < s
     }
 }
 

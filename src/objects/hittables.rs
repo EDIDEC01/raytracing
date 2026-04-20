@@ -1,21 +1,18 @@
-use crate::types::point::Point;
-use crate::types::vector::Vec3;
-use crate::types::ray::Ray;
-use crate::types::interval::Interval;
+use std::sync::Arc;
 
-#[derive(Default, Clone)]
+use crate::{Material, Vec3, Ray, Interval, Point};
+
+#[derive(Clone)]
 pub struct HitRecord {
     pub p: Point,
     pub normal: Vec3,
     pub t: f64,
-    pub front_face: bool
+    pub front_face: bool,
+    pub material: Arc<dyn Material>
 }
 
 impl HitRecord {
     pub fn set_face_normal(&mut self, r: &Ray, outward_normal: &Vec3) {
-        // Sets the hit record normal vector.
-        // NOTE: the parameter `outward_normal` is assumed to have unit length.
-
         self.front_face = r.dir().dot(*outward_normal) < 0.0;
         self.normal = if self.front_face {
             *outward_normal
