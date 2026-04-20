@@ -126,8 +126,8 @@ impl Camera {
         let mut pixel_color = Color::default();
 
         for _ in 0..self.sample_per_pixel {
-            let r = self.get_ray(i, j);
-            pixel_color += Self::ray_color(&r, world, self.max_depth);
+            let mut r = self.get_ray(i, j);
+            pixel_color += Self::ray_color(&mut r, world, self.max_depth);
         }
 
         pixel_color * self.pixel_sample_scale
@@ -146,19 +146,23 @@ impl Camera {
         Vec3::new(random_f64() - 0.5, random_f64() - 0.5, 0.0)
     }
 
-    fn ray_color(r: &Ray, world: &HittableList, depth: u32) -> Color {
-        if depth == 0 {
-            return Color::default();
-        }
+    fn ray_color(r: &mut Ray, world: &HittableList, max_depth: u32) -> Color {
+        let mut attenuation = 1.0;
 
-        if let Some(rec) = world.hit(r, POSITIVE) {
-            let direction = rec.normal + Vec3::random_unit_vector();
-            return 0.7 * Self::ray_color(&Ray::new(rec.p, direction), world, depth - 1);
+        for _ in 0..max_depth {
+            if let Some(rec) = world.hit(r, POSITIVE) {
+                r.set_orig(rec.p); 
+                r.set_dir(rec.normal + Vec3::random_unit_vector()); 
+                attenuation *= 0.7;
+            } else {
+                let unit_dir = r.dir().unit_vector();
+                let a = 0.5 * (unit_dir.y + 1.0);
+                let sky = (1.0 - a) * Color::new(1.0, 1.0, 1.0) + a * Color::new(0.5, 0.7, 1.0);
+                return sky * attenuation; 
+            }
         }
-
-        let unit_dir = r.dir().unit_vector();
-        let a = 0.5 * (unit_dir.y + 1.0);
-        (1.0 - a) * Color::new(1.0, 1.0, 1.0) + a * Color::new(0.5, 0.7, 1.0)
+            
+        Color::default()
     }
 
     fn report_progress(&self, j: u32, start_time: &Instant) {

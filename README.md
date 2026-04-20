@@ -66,7 +66,7 @@ Where $N$ is the number of samples per pixel.
 Matte surfaces are modeled by scattering rays in random directions. The current implementation uses the **Lambertian distribution** by picking random points on a unit sphere tangent to the hit point:
 
 $$
-\mathbf{S} = \mathbf{P} + \mathbf{n} + \text{random\_unit\_vector}()
+\mathbf{S} = \mathbf{P} + \mathbf{n} + \text{random\_unit\_vector()}
 $$
 
 Where $\mathbf{S}$ is the new target point for the scattered ray, $\mathbf{P}$ is the hit point, and $\mathbf{n}$ is the surface normal.
