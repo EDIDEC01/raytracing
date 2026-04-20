@@ -3,18 +3,20 @@
 A high-performance Ray Tracer implemented in Rust, following the "Ray Tracing in One Weekend" book series.
 
 ## Progress
-Currently, this project implements the features up to **Chapter 8: Antialiasing**.
+Currently, this project implements the features up to **Chapter 9: Diffuse Materials**.
 
 ### Implemented Features
-- **Vec3 Utility Class**: A robust 3D vector implementation with operator overloading for seamless mathematical operations.
+- **Vec3 Utility Class**: A robust 3D vector implementation with operator overloading and stochastic sampling methods.
 - **Rays, Camera, and Background**: Basic ray generation and a gradient background.
 - **Spheres**: Mathematical representation and ray-sphere intersection logic.
-- **Surface Normals**: Calculation of surface normals for shading based on the direction of the hit.
-- **Hittable Objects & Lists**: An abstraction layer using Traits to handle multiple objects in a scene and find the closest intersection.
-- **Interval-based Clipping**: Improved ray-hit detection using a dedicated `Interval` struct for cleaner code and robust range handling.
-- **Dedicated Camera Class**: Refactored the rendering loop into a standalone `Camera` class, centralizing image configuration and viewport logic.
-- **Antialiasing**: Implemented multi-sampling per pixel with randomized offsets for smoother edges.
-- **Random Utility Functions**: Added reliable random number generation for stochastic sampling.
+- **Surface Normals**: Calculation of surface normals for shading and determining front/back faces.
+- **Hittable Objects & Lists**: An abstraction layer using Traits to handle multiple objects in a scene.
+- **Interval-based Clipping**: Improved ray-hit detection using a dedicated `Interval` struct.
+- **Dedicated Camera Class**: Centralized image configuration, viewport logic, and recursive rendering.
+- **Antialiasing**: Multi-sampling per pixel with randomized offsets.
+- **Diffuse Materials**: Implementation of matte surfaces using stochastic ray scattering (Lambertian-like).
+- **Gamma Correction**: Conversion from linear to gamma space for more accurate color representation.
+- **Recursive Ray Tracing**: Limited recursion to handle multiple ray bounces for indirect lighting.
 - **PPM Image Generation**: Outputting the final render to the PPM image format.
 
 ## Mathematical Foundations
@@ -32,17 +34,24 @@ Where:
 ### 2. Ray-Sphere Intersection
 To find if a ray hits a sphere of radius $r$ centered at $\mathbf{C}$, we solve for $t$ in the quadratic equation:
 $$t^2 \mathbf{d} \cdot \mathbf{d} - 2t \mathbf{d} \cdot (\mathbf{C} - \mathbf{Q}) + (\mathbf{C} - \mathbf{Q}) \cdot (\mathbf{C} - \mathbf{Q}) - r^2 = 0$$
-Where $\mathbf{Q}$ is the ray origin and $\mathbf{d}$ is the ray direction. The implementation uses the optimized "half-b" version of the quadratic formula to reduce redundant calculations.
+Where $\mathbf{Q}$ is the ray origin and $\mathbf{d}$ is the ray direction.
 
 ### 3. Surface Normals
 The normal vector $\mathbf{n}$ at a hit point $\mathbf{P}$ on a sphere centered at $\mathbf{C}$ is calculated as:
 $$\mathbf{n} = \frac{\mathbf{P} - \mathbf{C}}{r}$$
-This resulting vector is then normalized to unit length. To ensure the normal always points against the incident ray, the implementation determines whether the ray hit the "front" or "back" face of the surface.
 
 ### 4. Antialiasing (Multi-sampling)
-To reduce jagged edges, each pixel is sampled multiple times with a small random offset within the pixel's boundaries. The final color is the average of these samples:
+Each pixel is sampled multiple times with a small random offset. The final color is the average:
 $$\mathbf{C}_{pixel} = \frac{1}{N} \sum_{i=1}^{N} \mathbf{C}_{sample, i}$$
-Where $N$ is the number of samples per pixel.
+
+### 5. Diffuse Reflection
+Matte surfaces are modeled by scattering rays in random directions. The current implementation uses the **Lambertian distribution** by picking random points on a unit sphere tangent to the hit point:
+$$\mathbf{S} = \mathbf{P} + \mathbf{n} + \text{random\_unit\_vector}()$$
+Where $\mathbf{S}$ is the new target point for the scattered ray.
+
+### 6. Gamma Correction
+To transform linear light into a representation more suitable for displays, we use a gamma of 2.0 (approximated by a square root):
+$$\text{color}_{gamma} = \sqrt{\text{color}_{linear}}$$
 
 ## Technical Details
 - **Language**: Rust

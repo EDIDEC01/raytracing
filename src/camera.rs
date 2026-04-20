@@ -14,6 +14,7 @@ pub struct Camera {
     pub aspect_ratio: f64,
     pub image_width: u32,
     pub sample_per_pixel: u32,
+    pub max_depth: u32,
     image_height: u32,
     pixel_sample_scale: f64,
     center: Point,
@@ -25,7 +26,7 @@ pub struct Camera {
 }
 
 impl Camera {
-    pub fn new(aspect_ratio: f64, image_width: u32, sample_per_pixel: u32) -> Self {
+    pub fn new(aspect_ratio: f64, image_width: u32, sample_per_pixel: u32, max_depth: u32) -> Self {
         let verbose = true;
 
         let image_height = (image_width as f64 / aspect_ratio) as u32;
@@ -53,6 +54,7 @@ impl Camera {
             aspect_ratio,
             image_width,
             sample_per_pixel,
+            max_depth,
             image_height,
             pixel_sample_scale,
             center,
@@ -73,8 +75,8 @@ impl Camera {
 
         if self.verbose {
             println!(
-                "Starting render: {}x{} pixels",
-                self.image_width, self.image_height
+                "Starting render: {}x{} pixels (SPP: {})",
+                self.image_width, self.image_height, self.sample_per_pixel
             );
         }
         let start_time = Instant::now();
@@ -125,7 +127,7 @@ impl Camera {
 
         for _ in 0..self.sample_per_pixel {
             let r = self.get_ray(i, j);
-            pixel_color += Self::ray_color(&r, world);
+            pixel_color += Self::ray_color(&r, world, self.max_depth);
         }
 
         pixel_color * self.pixel_sample_scale
@@ -140,13 +142,18 @@ impl Camera {
         Ray::new(self.center, ray_direction)
     }
 
-    fn sample_square() -> Vec3 {
+    #[inline] fn sample_square() -> Vec3 {
         Vec3::new(random_f64() - 0.5, random_f64() - 0.5, 0.0)
     }
 
-    fn ray_color(r: &Ray, world: &HittableList) -> Color {
+    fn ray_color(r: &Ray, world: &HittableList, depth: u32) -> Color {
+        if depth == 0 {
+            return Color::default();
+        }
+
         if let Some(rec) = world.hit(r, POSITIVE) {
-            return 0.5 * Color::new(rec.normal.x + 1.0, rec.normal.y + 1.0, rec.normal.z + 1.0);
+            let direction = rec.normal + Vec3::random_unit_vector();
+            return 0.7 * Self::ray_color(&Ray::new(rec.p, direction), world, depth - 1);
         }
 
         let unit_dir = r.dir().unit_vector();
@@ -155,9 +162,6 @@ impl Camera {
     }
 
     fn report_progress(&self, j: u32, start_time: &Instant) {
-        if (j + 1) % 10 != 0 && j != self.image_height - 1 {
-            return;
-        }
         let elapsed = start_time.elapsed().as_secs_f64();
         let progress = (j + 1) as f64 / self.image_height as f64;
         let pixels_processed = (j + 1) * self.image_width;
@@ -169,11 +173,10 @@ impl Camera {
         };
 
         print!(
-            "\rProgress: {:.2}% | Elapsed: {:.1}s | Speed: {:.0} rays/s | SPP: {}",
+            "\rProgress: {:.2}% | Elapsed: {:.1}s | Speed: {:.0} rays/s\x1b[K",
             progress * 100.0,
             elapsed,
-            rays_per_sec,
-            self.sample_per_pixel
+            rays_per_sec
         );
         let _ = io::stdout().flush();
     }

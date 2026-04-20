@@ -26,13 +26,25 @@ impl Color {
     }
 
     pub fn write_color<W: Write>(&self, writer: &mut W) -> Result<()> {
+        let r = Color::linear_to_gamma(self.r());
+        let g = Color::linear_to_gamma(self.g());
+        let b = Color::linear_to_gamma(self.b());
+
         let intensity = Interval::new(0.0, 0.999);
 
-        let r_byte = (256.0 * intensity.clamp(self.r())) as i32;
-        let g_byte = (256.0 * intensity.clamp(self.g())) as i32;
-        let b_byte = (256.0 * intensity.clamp(self.b())) as i32;
+        let r_byte = (256.0 * intensity.clamp(r)) as i32;
+        let g_byte = (256.0 * intensity.clamp(g)) as i32;
+        let b_byte = (256.0 * intensity.clamp(b)) as i32;
 
         writeln!(writer, "{} {} {}", r_byte, g_byte, b_byte)
+    }
+
+    fn linear_to_gamma(linear_component: f64) -> f64{
+        if linear_component > 0.0 {
+            f64::sqrt(linear_component)
+        } else {
+            0.0
+        }
     }
 }
 

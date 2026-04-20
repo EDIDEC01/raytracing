@@ -12,9 +12,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let aspect_ratio: f64 = 16.0 / 9.0;
     let image_width: u32 = 1920;
     let sample_per_pixel: u32 = 100;
-    
+    let max_depth: u32 = 50;
+
     // Camera + Render
-    let mut camera = Camera::new(aspect_ratio, image_width, sample_per_pixel);
+    let mut camera = Camera::new(aspect_ratio, image_width, sample_per_pixel, max_depth);
     camera.render(&world);
 
     let file = File::create("example.ppm")?;
