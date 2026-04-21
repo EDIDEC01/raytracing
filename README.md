@@ -3,17 +3,18 @@
 A high-performance Ray Tracer implemented in Rust, following the "Ray Tracing in One Weekend" book series.
 
 ## Progress
-Currently, this project implements the features up to **Chapter 10: Metal**.
+Currently, this project implements the features up to **Chapter 11: Dielectrics**.
 
 ### Implemented Features
 - **Vec3 Utility Class**: A robust 3D vector implementation with operator overloading and stochastic sampling methods.
 - **Rays, Camera, and Background**: Basic ray generation and a gradient background.
 - **Spheres**: Mathematical representation and ray-sphere intersection logic.
 - **Surface Normals**: Calculation of surface normals for shading and determining front/back faces.
-- **Hittable Objects & Lists**: An abstraction layer using Traits to handle multiple objects in a scene.
-- **Material System**: An abstract `Material` trait allowing for different surface behaviors.
+- **Hittable Objects & Lists**: Trait-based architecture (`Hittable` trait) for ray-object intersection detection. Objects stored in `HittableList` using `Box<dyn Hittable>` for polymorphism.
+- **Material System**: Trait-based `Material` interface for surface behavior. Materials shared between objects using `Arc<dyn Material>` for efficient memory usage.
 - **Lambertian (Diffuse)**: Realistic matte surfaces using a stochastic distribution.
 - **Metal (Specular)**: Reflective surfaces with support for adjustable "fuzziness" (roughness).
+- **Dielectrics (Refraction)**: Support for transparent materials like glass and water, including total internal reflection and Schlick's approximation for varying reflectivity by angle.
 - **Interval-based Clipping**: Improved ray-hit detection using a dedicated `Interval` struct.
 - **Dedicated Camera Class**: Centralized image configuration, viewport logic, and iterative rendering.
 - **Antialiasing**: Multi-sampling per pixel with randomized offsets.
@@ -61,21 +62,39 @@ $$
 
 Fuzzy reflection is achieved by adding a small random vector within a unit sphere to the perfect reflection vector, scaled by a "fuzz" factor.
 
-### 5. Antialiasing (Multi-sampling)
+### 5. Dielectric Refraction (Snell's Law)
+Refraction is modeled using Snell's law:
+
+$$
+\eta \cdot \sin \theta = \eta' \cdot \sin \theta'
+$$
+
+Where $\eta$ and $\eta'$ are the refractive indices of the two media. When the ray cannot refract (total internal reflection), it reflects instead.
+
+### 6. Schlick's Approximation
+Real glass has reflectivity that varies with the angle. We use Schlick's approximation to model this:
+
+$$
+R(\theta) = R_0 + (1 - R_0)(1 - \cos \theta)^5
+$$
+
+Where $R_0 = \left( \frac{\eta - \eta'}{\eta + \eta'} \right)^2$.
+
+### 7. Antialiasing (Multi-sampling)
 To reduce jagged edges, each pixel is sampled multiple times with a small random offset within the pixel's boundaries. The final color is the average of these samples:
 
 $$
 \mathbf{C}_{pixel} = \frac{1}{N} \sum_{i=1}^{N} \mathbf{C}_{sample, i}
 $$
 
-### 6. Diffuse Reflection
+### 8. Diffuse Reflection
 Matte surfaces are modeled by scattering rays in random directions. The current implementation uses the **Lambertian distribution** by picking random points on a unit sphere tangent to the hit point:
 
 $$
 \mathbf{S} = \mathbf{P} + \mathbf{n} + \text{random\_unit\_vector()}
 $$
 
-### 7. Gamma Correction
+### 9. Gamma Correction
 To transform linear light into a representation more suitable for displays, we use a gamma of 2.0 (approximated by a square root):
 
 $$
@@ -85,20 +104,26 @@ $$
 ## Technical Details
 - **Language**: Rust
 - **Floating Point Precision**: `f64` (Double precision) for high-accuracy calculations.
-- **Performance Optimizations**:
+- **Memory Management**: 
+  - `Arc<dyn Material>` for thread-safe shared material ownership.
+  - `Box<dyn Hittable>` for polymorphic scene object storage.
+- **Optimizations**:
   - Buffered I/O using `BufWriter` for efficient file writing.
-  - Pass-by-value for small `Copy` types (`Vec3`, `Point`, `Color`) to optimize CPU register usage.
+  - Pass-by-value for `Copy` types (`Vec3`, `Point`, `Color`) to optimize stack allocation and CPU register usage.
   - Library/Binary split for better modularity and testability.
+- **Dependencies**:
+  - `rand` (v0.10.1) - Random number generation for stochastic sampling.
 
 ## Getting Started
 
 ### Prerequisites
-- [Rust and Cargo](https://rustup.rs/) installed on your system.
+- [Rust and Cargo](https://rustup.rs/) installed on your system (Edition 2024 or later).
 
-### Running the Renderer
-To generate the `example.ppm` image, run:
+### Building & Running
 
+**Optimized release build** (slow compilation, fast rendering - recommended):
 ```bash
+cargo build --release
 cargo run --release
 ```
 

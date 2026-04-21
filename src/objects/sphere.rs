@@ -22,7 +22,7 @@ impl Hittable for Sphere {
     fn hit(&self, r: &Ray, ray_t: Interval) -> Option<HitRecord> {
         let oc = self.center - r.orig();
         let a = r.dir().length_squared();
-        let h = r.dir().dot(oc);
+        let h = Vec3::dot(r.dir(), oc);
         let c = oc.length_squared() - self.radius * self.radius;
 
         let discriminant = h * h - a * c;

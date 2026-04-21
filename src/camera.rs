@@ -127,7 +127,7 @@ impl Camera {
                     return Color::default();
                 }
             } else {
-                let unit_dir = r.dir().unit_vector();
+                let unit_dir = Vec3::unit_vector(r.dir());
                 let a = 0.5 * (unit_dir.y + 1.0);
                 let sky = (1.0 - a) * Color::new(1.0, 1.0, 1.0) + a * Color::new(0.5, 0.7, 1.0);
                 return sky * result; 

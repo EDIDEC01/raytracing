@@ -6,8 +6,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Material configuration
     let material_ground = Lambertian::new(Color::new(0.8, 0.8, 0.0));
     let material_center = Lambertian::new(Color::new(0.1, 0.2, 0.5));
-    let material_left = Metal::new(Color::new(0.8, 0.8, 0.8), 0.3);
-    let material_right = Metal::new(Color::new(0.8, 0.6, 0.2), 1.0);
+    let material_left   = Dielectric::new(1.5);
+    let material_bubble = Dielectric::new(1.0 / 1.5);
+    let material_right       = Metal::new(Color::new(0.8, 0.6, 0.2), 1.0);
 
     // World
     let mut world = HittableList::new();
@@ -25,6 +26,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Point::new(-1.0, 0.0, -1.0),
         0.5,
         Arc::new(material_left),
+    )));
+    world.add(Box::new(Sphere::new(
+        Point::new(-1.0, 0.0, -1.0),
+        0.4,
+        Arc::new(material_bubble),
     )));
     world.add(Box::new(Sphere::new(
         Point::new(1.0, 0.0, -1.0),
