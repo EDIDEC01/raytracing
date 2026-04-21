@@ -1,6 +1,6 @@
+use crate::{random_f64, random_f64_range};
 use std::fmt;
 use std::ops::{Add, AddAssign, Div, Mul, MulAssign, Neg, Sub, SubAssign};
-use crate::{random_f64, random_f64_range};
 
 #[derive(PartialEq, Debug, Clone, Copy, Default)]
 pub struct Vec3 {
@@ -19,7 +19,11 @@ impl Vec3 {
     }
 
     pub fn random_range(min: f64, max: f64) -> Self {
-        Self::new(random_f64_range(min, max), random_f64_range(min, max), random_f64_range(min, max))
+        Self::new(
+            random_f64_range(min, max),
+            random_f64_range(min, max),
+            random_f64_range(min, max),
+        )
     }
 
     pub fn length(self) -> f64 {
@@ -46,10 +50,23 @@ impl Vec3 {
         v / v.length()
     }
 
+    pub fn random_in_unit_disk() -> Self {
+        loop {
+            let p = Self::new(
+                random_f64_range(-1.0, 1.0),
+                random_f64_range(-1.0, 1.0),
+                0.0,
+            );
+            if p.length_squared() < 1.0 {
+                return p;
+            }
+        }
+    }
+
     pub fn random_unit_vector() -> Self {
         loop {
             let p = Self::random_range(-1.0, 1.0);
-            let lensq = p.length_squared(); 
+            let lensq = p.length_squared();
             if 1e-160 < lensq && lensq <= 1.0 {
                 return p / lensq;
             }

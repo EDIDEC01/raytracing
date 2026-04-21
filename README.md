@@ -3,7 +3,7 @@
 A high-performance Ray Tracer implemented in Rust, following the "Ray Tracing in One Weekend" book series.
 
 ## Progress
-Currently, this project implements the features up to **Chapter 12: Positionable Camera**.
+Currently, this project implements the features up to **Chapter 13: Defocus Blur**.
 
 ### Implemented Features
 - **Vec3 Utility Class**: A robust 3D vector implementation with operator overloading and stochastic sampling methods.
@@ -16,6 +16,7 @@ Currently, this project implements the features up to **Chapter 12: Positionable
 - **Metal (Specular)**: Reflective surfaces with support for adjustable "fuzziness" (roughness).
 - **Dielectrics (Refraction)**: Support for transparent materials like glass and water, including total internal reflection and Schlick's approximation for varying reflectivity by angle.
 - **Positionable Camera**: Advanced camera controls including field-of-view (vfov), look-from/look-at orientation, and customizable "up" vector.
+- **Defocus Blur (Depth of Field)**: Simulated aperture and focus distance for realistic blur effects.
 - **Interval-based Clipping**: Improved ray-hit detection using a dedicated `Interval` struct.
 - **Dedicated Camera Class**: Centralized image configuration with an `init()` system and iterative rendering.
 - **Antialiasing**: Multi-sampling per pixel with randomized offsets.
@@ -42,19 +43,28 @@ To orient the camera, we define an orthonormal basis $(u, v, w)$ using the `look
 - $u = \text{unit}(\text{vup} \times w)$
 - $v = w \times u$
 
-### 4. Field of View (Vertical FOV)
-The viewport height is determined by the vertical field of view $\theta$:
+### 4. Defocus Blur
+Rays are sampled from a disk of radius $r_{aperture}$ centered at the camera's `look_from` position:
 
 $$
-h = \tan(\theta/2)
+r_{aperture} = \text{focus\_dist} \times \tan(\text{defocus\_angle} / 2)
 $$
 
-### 5. Specular Reflection & Refraction
+The rays are then directed towards the focus plane at `focus_dist`.
+
+### 5. Field of View (Vertical FOV)
+The viewport height is determined by the vertical field of view $\theta$ and the focus distance $d$:
+
+$$
+h = \tan(\theta/2) \cdot d
+$$
+
+### 6. Specular Reflection & Refraction
 - **Reflection**: $\mathbf{r} = \mathbf{v} - 2(\mathbf{v} \cdot \mathbf{n})\mathbf{n}$
 - **Refraction (Snell's Law)**: $\eta \sin \theta = \eta' \sin \theta'$
 - **Schlick's Approximation**: For angle-dependent reflectivity.
 
-### 6. Antialiasing & Diffuse Reflection
+### 7. Antialiasing & Diffuse Reflection
 - **Antialiasing**: $\mathbf{C}_{pixel} = \frac{1}{N} \sum \mathbf{C}_{sample}$
 - **Lambertian**: $\mathbf{S} = \mathbf{P} + \mathbf{n} + \text{random\_unit\_vector()}$
 
