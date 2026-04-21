@@ -3,7 +3,7 @@
 A high-performance Ray Tracer implemented in Rust, following the "Ray Tracing in One Weekend" book series.
 
 ## Progress
-Currently, this project implements the features up to **Chapter 11: Dielectrics**.
+Currently, this project implements the features up to **Chapter 12: Positionable Camera**.
 
 ### Implemented Features
 - **Vec3 Utility Class**: A robust 3D vector implementation with operator overloading and stochastic sampling methods.
@@ -15,8 +15,9 @@ Currently, this project implements the features up to **Chapter 11: Dielectrics*
 - **Lambertian (Diffuse)**: Realistic matte surfaces using a stochastic distribution.
 - **Metal (Specular)**: Reflective surfaces with support for adjustable "fuzziness" (roughness).
 - **Dielectrics (Refraction)**: Support for transparent materials like glass and water, including total internal reflection and Schlick's approximation for varying reflectivity by angle.
+- **Positionable Camera**: Advanced camera controls including field-of-view (vfov), look-from/look-at orientation, and customizable "up" vector.
 - **Interval-based Clipping**: Improved ray-hit detection using a dedicated `Interval` struct.
-- **Dedicated Camera Class**: Centralized image configuration, viewport logic, and iterative rendering.
+- **Dedicated Camera Class**: Centralized image configuration with an `init()` system and iterative rendering.
 - **Antialiasing**: Multi-sampling per pixel with randomized offsets.
 - **Gamma Correction**: Conversion from linear to gamma space for more accurate color representation.
 - **Binary Image Output**: Switched to binary PPM (P6) format for more efficient image generation and storage.
@@ -32,87 +33,44 @@ $$
 \mathbf{P}(t) = \mathbf{A} + t\mathbf{B}
 $$
 
-Where:
-- $\mathbf{A}$ is the ray origin.
-- $\mathbf{B}$ is the ray direction.
-- $\mathbf{P}(t)$ is a 3D position along the ray.
-
 ### 2. Ray-Sphere Intersection
-To find if a ray hits a sphere of radius $r$ centered at $\mathbf{C}$, we solve for $t$ in the quadratic equation:
+Solving for $t$ in the quadratic equation to find hits on a sphere of radius $r$ centered at $\mathbf{C}$.
+
+### 3. Positionable Camera (Orthonormal Basis)
+To orient the camera, we define an orthonormal basis $(u, v, w)$ using the `look_from`, `look_at`, and `vup` vectors:
+- $w = \text{unit}(\text{look\_from} - \text{look\_at})$
+- $u = \text{unit}(\text{vup} \times w)$
+- $v = w \times u$
+
+### 4. Field of View (Vertical FOV)
+The viewport height is determined by the vertical field of view $\theta$:
 
 $$
-t^2 \mathbf{d} \cdot \mathbf{d} - 2t \mathbf{d} \cdot (\mathbf{C} - \mathbf{Q}) + (\mathbf{C} - \mathbf{Q}) \cdot (\mathbf{C} - \mathbf{Q}) - r^2 = 0
+h = \tan(\theta/2)
 $$
 
-Where $\mathbf{Q}$ is the ray origin and $\mathbf{d}$ is the ray direction.
+### 5. Specular Reflection & Refraction
+- **Reflection**: $\mathbf{r} = \mathbf{v} - 2(\mathbf{v} \cdot \mathbf{n})\mathbf{n}$
+- **Refraction (Snell's Law)**: $\eta \sin \theta = \eta' \sin \theta'$
+- **Schlick's Approximation**: For angle-dependent reflectivity.
 
-### 3. Surface Normals
-The normal vector $\mathbf{n}$ at a hit point $\mathbf{P}$ on a sphere centered at $\mathbf{C}$ is calculated as:
-
-$$
-\mathbf{n} = \frac{\mathbf{P} - \mathbf{C}}{r}
-$$
-
-### 4. Specular Reflection
-For polished surfaces like metal, the reflected ray direction $\mathbf{r}$ is calculated based on the incident vector $\mathbf{v}$ and the surface normal $\mathbf{n}$:
-
-$$
-\mathbf{r} = \mathbf{v} - 2(\mathbf{v} \cdot \mathbf{n})\mathbf{n}
-$$
-
-Fuzzy reflection is achieved by adding a small random vector within a unit sphere to the perfect reflection vector, scaled by a "fuzz" factor.
-
-### 5. Dielectric Refraction (Snell's Law)
-Refraction is modeled using Snell's law:
-
-$$
-\eta \cdot \sin \theta = \eta' \cdot \sin \theta'
-$$
-
-Where $\eta$ and $\eta'$ are the refractive indices of the two media. When the ray cannot refract (total internal reflection), it reflects instead.
-
-### 6. Schlick's Approximation
-Real glass has reflectivity that varies with the angle. We use Schlick's approximation to model this:
-
-$$
-R(\theta) = R_0 + (1 - R_0)(1 - \cos \theta)^5
-$$
-
-Where $R_0 = \left( \frac{\eta - \eta'}{\eta + \eta'} \right)^2$.
-
-### 7. Antialiasing (Multi-sampling)
-To reduce jagged edges, each pixel is sampled multiple times with a small random offset within the pixel's boundaries. The final color is the average of these samples:
-
-$$
-\mathbf{C}_{pixel} = \frac{1}{N} \sum_{i=1}^{N} \mathbf{C}_{sample, i}
-$$
-
-### 8. Diffuse Reflection
-Matte surfaces are modeled by scattering rays in random directions. The current implementation uses the **Lambertian distribution** by picking random points on a unit sphere tangent to the hit point:
-
-$$
-\mathbf{S} = \mathbf{P} + \mathbf{n} + \text{random\_unit\_vector()}
-$$
-
-### 9. Gamma Correction
-To transform linear light into a representation more suitable for displays, we use a gamma of 2.0 (approximated by a square root):
-
-$$
-\text{color}_{gamma} = \sqrt{\text{color}_{linear}}
-$$
+### 6. Antialiasing & Diffuse Reflection
+- **Antialiasing**: $\mathbf{C}_{pixel} = \frac{1}{N} \sum \mathbf{C}_{sample}$
+- **Lambertian**: $\mathbf{S} = \mathbf{P} + \mathbf{n} + \text{random\_unit\_vector()}$
 
 ## Technical Details
 - **Language**: Rust
-- **Floating Point Precision**: `f64` (Double precision) for high-accuracy calculations.
+- **Camera Implementation**: 
+  - Uses `Default` trait for configuration.
+  - Decoupled configuration from initialization via an internal `init()` method called at the start of `render()`.
 - **Memory Management**: 
   - `Arc<dyn Material>` for thread-safe shared material ownership.
   - `Box<dyn Hittable>` for polymorphic scene object storage.
 - **Optimizations**:
-  - Buffered I/O using `BufWriter` for efficient file writing.
-  - Pass-by-value for `Copy` types (`Vec3`, `Point`, `Color`) to optimize stack allocation and CPU register usage.
-  - Library/Binary split for better modularity and testability.
+  - Buffered I/O using `BufWriter`.
+  - Pass-by-value for `Copy` types (`Vec3`, `Point`, `Color`).
 - **Dependencies**:
-  - `rand` (v0.10.1) - Random number generation for stochastic sampling.
+  - `rand` (v0.10.1) - Random number generation.
 
 ## Getting Started
 

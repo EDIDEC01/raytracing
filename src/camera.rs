@@ -1,63 +1,86 @@
 use std::io::{self, Write};
 use std::time::Instant;
 
-use crate::{Hittable, HittableList, Color, Point, Ray, Vec3, POSITIVE, random_f64};
+use crate::{
+    Color, Hittable, HittableList, POSITIVE, Point, Ray, Vec3, degrees_to_radians, random_f64,
+};
 
-#[derive(Default)]
 pub struct Camera {
     pub aspect_ratio: f64,
     pub image_width: u32,
     pub sample_per_pixel: u32,
     pub max_depth: u32,
+    pub vfov: f64,
+    pub look_from: Point,
+    pub look_at: Point,
+    pub vup: Vec3,
+    pub verbose: bool,
+
     image_height: u32,
     pixel_sample_scale: f64,
     center: Point,
     pixel00_loc: Point,
     pixel_delta_u: Vec3,
     pixel_delta_v: Vec3,
+    u: Vec3,
+    v: Vec3,
+    w: Vec3,
     pixels: Vec<Color>,
-    verbose: bool,
+}
+
+impl Default for Camera {
+    fn default() -> Self {
+        Self {
+            aspect_ratio: 1.0,
+            image_width: 100,
+            sample_per_pixel: 10,
+            max_depth: 10,
+            vfov: 90.0,
+            look_from: Point::default(),
+            look_at: Point::new(0.0, 0.0, -1.0),
+            vup: Vec3::new(0.0, 1.0, 0.0),
+            verbose: true,
+            image_height: 0,
+            pixel_sample_scale: 0.0,
+            center: Point::default(),
+            pixel00_loc: Point::default(),
+            pixel_delta_u: Vec3::default(),
+            pixel_delta_v: Vec3::default(),
+            u: Vec3::default(),
+            v: Vec3::default(),
+            w: Vec3::default(),
+            pixels: Vec::new(),
+        }
+    }
 }
 
 impl Camera {
-    pub fn new(aspect_ratio: f64, image_width: u32, sample_per_pixel: u32, max_depth: u32) -> Self {
-        let verbose = true;
+    fn init(&mut self) {
+        self.image_height = (self.image_width as f64 / self.aspect_ratio) as u32;
+        self.pixel_sample_scale = 1.0 / self.sample_per_pixel as f64;
+        self.center = self.look_from;
 
-        let image_height = (image_width as f64 / aspect_ratio) as u32;
-        let pixel_sample_scale = 1.0 / sample_per_pixel as f64;
-        let center = Point::default();
+        let focal_length = (self.look_from - self.look_at).length();
+        let theta = degrees_to_radians(self.vfov);
+        let h = f64::tan(theta / 2.0);
+        let viewport_height = 2.0 * h * focal_length;
+        let viewport_width = viewport_height * (self.image_width as f64 / self.image_height as f64);
 
-        let focal_length: f64 = 1.0;
-        let viewport_height: f64 = 2.0;
-        let viewport_width: f64 = viewport_height * (image_width as f64 / image_height as f64);
-        let camera_center: Point = Point::new(0.0, 0.0, 0.0);
+        self.w = Vec3::unit_vector(self.look_from - self.look_at);
+        self.u = Vec3::unit_vector(Vec3::cross(self.vup, self.w));
+        self.v = Vec3::cross(self.w, self.u);
 
-        let viewport_u = Vec3::new(viewport_width, 0.0, 0.0);
-        let viewport_v = Vec3::new(0.0, -viewport_height, 0.0);
+        let viewport_u = viewport_width * self.u;
+        let viewport_v = viewport_height * -self.v;
 
-        let pixel_delta_u = viewport_u / (image_width as f64);
-        let pixel_delta_v = viewport_v / (image_height as f64);
+        self.pixel_delta_u = viewport_u / (self.image_width as f64);
+        self.pixel_delta_v = viewport_v / (self.image_height as f64);
 
-        let viewport_upper_left: Point =
-            camera_center - Vec3::new(0.0, 0.0, focal_length) - viewport_u / 2.0 - viewport_v / 2.0;
-        let pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
+        let viewport_upper_left = self.center - (focal_length * self.w) - viewport_u / 2.0 - viewport_v / 2.0;
+        self.pixel00_loc = viewport_upper_left + 0.5 * (self.pixel_delta_u + self.pixel_delta_v);
 
-        let pixels = Vec::with_capacity((image_width * image_height) as usize);
-
-        Self {
-            aspect_ratio,
-            image_width,
-            sample_per_pixel,
-            max_depth,
-            image_height,
-            pixel_sample_scale,
-            center,
-            pixel00_loc,
-            pixel_delta_u,
-            pixel_delta_v,
-            pixels,
-            verbose,
-        }
+        self.pixels = Vec::with_capacity((self.image_width * self.image_height) as usize);
+        self.verbose = true;
     }
 
     pub fn set_verbose(&mut self, verbose: bool) {
@@ -66,6 +89,7 @@ impl Camera {
 
     pub fn render(&mut self, world: &HittableList) {
         self.pixels.clear();
+        self.init();
 
         if self.verbose {
             println!(
@@ -111,7 +135,8 @@ impl Camera {
         Ray::new(self.center, ray_direction)
     }
 
-    #[inline] fn sample_square() -> Vec3 {
+    #[inline]
+    fn sample_square() -> Vec3 {
         Vec3::new(random_f64() - 0.5, random_f64() - 0.5, 0.0)
     }
 
@@ -130,10 +155,10 @@ impl Camera {
                 let unit_dir = Vec3::unit_vector(r.dir());
                 let a = 0.5 * (unit_dir.y + 1.0);
                 let sky = (1.0 - a) * Color::new(1.0, 1.0, 1.0) + a * Color::new(0.5, 0.7, 1.0);
-                return sky * result; 
+                return sky * result;
             }
         }
-            
+
         Color::default()
     }
 

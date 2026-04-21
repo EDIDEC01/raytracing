@@ -3,12 +3,12 @@ use std::{fs::File, io::BufWriter, sync::Arc};
 use raytracing::*;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Material configuration
+    // Material
     let material_ground = Lambertian::new(Color::new(0.8, 0.8, 0.0));
     let material_center = Lambertian::new(Color::new(0.1, 0.2, 0.5));
-    let material_left   = Dielectric::new(1.5);
-    let material_bubble = Dielectric::new(1.0 / 1.5);
-    let material_right       = Metal::new(Color::new(0.8, 0.6, 0.2), 1.0);
+    let material_left = Dielectric::new(1.50);
+    let material_bubble = Dielectric::new(1.00 / 1.50);
+    let material_right = Metal::new(Color::new(0.8, 0.6, 0.2), 1.0);
 
     // World
     let mut world = HittableList::new();
@@ -38,14 +38,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Arc::new(material_right),
     )));
 
-    // Image configuration
-    let aspect_ratio: f64 = 16.0 / 9.0;
-    let image_width: u32 = 1280;
-    let sample_per_pixel: u32 = 100;
-    let max_depth: u32 = 50;
-
-    // Camera + Render
-    let mut camera = Camera::new(aspect_ratio, image_width, sample_per_pixel, max_depth);
+    // Camera configuration + Render
+    let mut camera = Camera::default();
+    camera.aspect_ratio = 16.0 / 9.0;
+    camera.image_width = 1280;
+    camera.sample_per_pixel = 100;
+    camera.max_depth = 50;
+    camera.vfov = 20.0;
+    camera.look_from = Point::new(-2.0, 2.0, 1.0);
+    camera.look_at = Point::new(0.0, 0.0, -1.0);
+    camera.vup = Vec3::new(0.0, 1.0, 0.0);
+    
     camera.render(&world);
 
     // Save
